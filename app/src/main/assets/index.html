@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>薄肌战神 - TV 跟练系统</title>
+  <style>
+    :root {
+      --bg: #07090e;
+      --card-bg: rgba(18, 24, 38, 0.9);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --primary: #10b981;
+      --accent: #f59e0b;
+      --coral: #e11d48;
+      --text: #f3f4f6;
+      --text-dim: #9ca3af;
+      --focus-glow: #38bdf8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      padding: 2.8vw 3.5vw;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 54px;
+      margin-bottom: 14px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-badge {
+      background: linear-gradient(135deg, #059669, #10b981);
+      color: #fff;
+      font-weight: 900;
+      font-size: 13px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      letter-spacing: 1px;
+    }
+    .brand-title {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      color: #fff;
+    }
+
+    .day-tabs { display: flex; gap: 8px; }
+    .day-tab {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      color: var(--text-dim);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .day-tab.active {
+      background: rgba(16, 185, 129, 0.18);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    .header-info { display: flex; align-items: center; gap: 12px; font-size: 14px; }
+    .status-pill {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--card-border);
+      padding: 6px 12px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .tv-focusable {
+      transition: all 0.18s ease;
+      outline: none;
+      border: 2px solid transparent;
+    }
+    .tv-focusable:focus, .tv-focusable.focused {
+      transform: scale(1.04);
+      border-color: var(--focus-glow) !important;
+      box-shadow: 0 0 22px rgba(56, 189, 248, 0.5) !important;
+      z-index: 10;
+    }
+
+    .main-stage {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1.32fr 0.9fr;
+      gap: 20px;
+      min-height: 0;
+    }
+
+    /* 纯白医学解剖展台 (还原参考图高对比白底) */
+    .anim-display {
+      background: radial-gradient(circle at 50% 45%, #ffffff 0%, #f1f5f9 72%, #cbd5e1 100%);
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      border-radius: 20px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .anim-top-overlay {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px;
+      z-index: 2;
+    }
+
+    .view-badge {
+      background: rgba(15, 23, 42, 0.82);
+      color: #f8fafc;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 8px;
+      backdrop-filter: blur(6px);
+    }
+
+    canvas#anatomicalStage {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+
+    .anatomy-tag-bar {
+      position: relative;
+      z-index: 2;
+      margin: 0 16px 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 12px 18px;
+      border-radius: 14px;
+      color: #fff;
+    }
+
+    .target-muscle-title { font-size: 12px; color: #94a3b8; margin-bottom: 3px; }
+    .target-muscle-name {
+      font-size: 17px;
+      font-weight: 800;
+      color: #fb7185;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .muscle-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #e11d48;
+      box-shadow: 0 0 10px #e11d48;
+    }
+    .biomechanics-cue {
+      font-size: 13px;
+      color: #e2e8f0;
+      text-align: right;
+      line-height: 1.45;
+    }
+
+    .control-dashboard {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 18px;
+    }
+
+    .timer-card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+
+    .phase-badge {
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      padding: 5px 16px;
+      border-radius: 20px;
+      margin-bottom: 8px;
+    }
+    .phase-work { background: rgba(16, 185, 129, 0.18); border: 1px solid var(--primary); color: var(--primary); }
+    .phase-rest { background: rgba(245, 158, 11, 0.18); border: 1px solid var(--accent); color: var(--accent); }
+
+    .current-exercise-name { font-size: 32px; font-weight: 900; margin-bottom: 4px; }
+    .current-exercise-sets { font-size: 15px; color: var(--text-dim); margin-bottom: 12px; }
+
+    .metrics-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 28px;
+      margin-bottom: 10px;
+    }
+    .big-timer-number {
+      font-size: 86px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+    .rep-counter-box {
+      text-align: left;
+      border-left: 2px solid rgba(255,255,255,0.12);
+      padding-left: 20px;
+    }
+    .rep-num { font-size: 38px; font-weight: 900; color: var(--primary); line-height: 1; }
+    .rep-label { font-size: 12px; color: var(--text-dim); }
+
+    /* 离心/向心节奏条 */
+    .tempo-bar-wrap {
+      width: 90%;
+      background: rgba(255,255,255,0.06);
+      height: 24px;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .tempo-fill {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      background: linear-gradient(90deg, #059669, #e11d48);
+      width: 50%;
+      opacity: 0.45;
+    }
+    .tempo-text { position: relative; z-index: 1; width: 100%; display: flex; justify-content: space-between; }
+
+    .ex-pills {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .ex-pill {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--card-border);
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-dim);
+      cursor: pointer;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ex-pill.active {
+      background: rgba(225, 29, 72, 0.2);
+      border-color: #fb7185;
+      color: #fff;
+    }
+
+    .controls-bar { display: flex; gap: 10px; }
+    .tv-btn {
+      flex: 1;
+      height: 50px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: #1e293b;
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .tv-btn-primary { background: linear-gradient(135deg, #059669, #10b981); border: none; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <span class="brand-badge">TV APK</span>
+      <h1 class="brand-title">薄肌战神 · 3D解剖跟练</h1>
+    </div>
+
+    <div class="day-tabs">
+      <button class="day-tab tv-focusable active" onclick="WorkoutEngine.filterDay('all')">全部 6 大王牌动作</button>
+      <button class="day-tab tv-focusable" onclick="WorkoutEngine.filterDay('push')">Day 1 推日 (胸肩)</button>
+      <button class="day-tab tv-focusable" onclick="WorkoutEngine.filterDay('pull')">Day 2 拉日 (背体态)</button>
+      <button class="day-tab tv-focusable" onclick="WorkoutEngine.filterDay('legs')">Day 3 腿臀核心</button>
+    </div>
+
+    <div class="header-info">
+      <button id="btnSlowMo" class="status-pill tv-focusable" onclick="WorkoutEngine.toggleSlowMo()">
+        <span>🔬 解剖慢放 [S]: 1.0x</span>
+      </button>
+      <button id="btnBioRule" class="status-pill tv-focusable" onclick="WorkoutEngine.toggleBioRule()">
+        <span>📐 力学标尺 [B]: 开</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="main-stage">
+    <!-- 左：纯白医学解剖展台 -->
+    <section class="anim-display">
+      <div class="anim-top-overlay">
+        <span class="view-badge" id="cameraAngleLabel">3/4 等轴医学解剖视角 · 银灰肌理 + 珊瑚红充血纤维</span>
+        <span class="view-badge" id="tensionReadout">向心收缩张力: 85%</span>
+      </div>
+
+      <canvas id="anatomicalStage" width="900" height="560"></canvas>
+
+      <div class="anatomy-tag-bar">
+        <div>
+          <div class="target-muscle-title">当前主发力肌群 (Target Ecorché Muscles)</div>
+          <div class="target-muscle-name">
+            <span class="muscle-dot"></span>
+            <span id="targetMuscleLabel">胸大肌 (锁骨部/胸肋部) · 肱三头肌 · 三角肌前束</span>
+          </div>
+        </div>
+        <div class="biomechanics-cue" id="biomechanicsCue">
+          肩-髋-踝刚性对齐呈 180° 直线<br>手肘内收 45°~60°，拒绝塌腰耸肩
+        </div>
+      </div>
+    </section>
+
+    <!-- 右：控制台 -->
+    <section class="control-dashboard">
+      <div class="card timer-card">
+        <div id="phaseBadge" class="phase-badge phase-work">训练进行中 (WORK)</div>
+        <div id="exerciseTitle" class="current-exercise-name">1. 标准俯卧撑</div>
+        <div id="setInfo" class="current-exercise-sets">第 1 / 4 组 · 渐进式超负荷</div>
+
+        <div class="metrics-row">
+          <div id="timerDisplay" class="big-timer-number">45</div>
+          <div class="rep-counter-box">
+            <div id="repDisplay" class="rep-num">0</div>
+            <div class="rep-label">本组标准完成次数</div>
+          </div>
+        </div>
+
+        <div class="tempo-bar-wrap">
+          <div id="tempoFill" class="tempo-fill"></div>
+          <div class="tempo-text">
+            <span id="tempoPhaseText">离心下放控制 (Eccentric)</span>
+            <span id="tempoRatioText">节奏 2 - 1 - 1</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;">遥控器切换动作 (数字键 1~6 或点击)</div>
+        <div class="ex-pills" id="exercisePills"></div>
+      </div>
+
+      <div class="controls-bar">
+        <button id="btnPause" class="tv-btn tv-btn-primary tv-focusable">
+          ⏸ 暂停/继续 [OK]
+        </button>
+        <button id="btnSkip" class="tv-btn tv-focusable">
+          ⏭ 下一阶段 [▶]
+        </button>
+        <button id="btnMute" class="tv-btn tv-focusable">
+          🔊 语音开启 [M]
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const WORKOUT_PROGRAM = [
+      {
+        id: "push_up",
+        day: "push",
+        name: "1. 标准俯卧撑",
+        shortName: "1. 标准俯卧撑",
+        targetMuscle: "胸大肌 (锁骨/胸骨部) · 肱三头肌 · 三角肌前束",
+        cue: "颈-脊-臀-踝保持 180° 刚性直线<br>手肘向后内收 45°~60°，胸口触底推起",
+        voiceIntro: "开始标准俯卧撑。腰腹臀收紧呈一条直线，手肘内收45度，感受胸大肌拉伸与挤压。",
+        voiceMid: "保持躯干刚性不要塌腰，推起时呼气，挤压胸肌内侧！",
+        duration: 45, rest: 30, sets: 4
+      },
+      {
+        id: "pike_push_up",
+        day: "push",
+        name: "2. 折刀俯卧撑",
+        shortName: "2. 折刀俯卧撑",
+        targetMuscle: "三角肌前束/中束 · 上胸锁骨部 · 肱三头肌",
+        cue: "屈髋呈 90° 倒 V 字形，脚尖踮起<br>头顶斜向前下方俯冲，小臂垂直地面",
+        voiceIntro: "开始折刀俯卧撑。臀部高抬呈倒V字形，重心前移，头向双手前方斜向俯冲。",
+        voiceMid: "保持小臂垂直地面，用肩膀三角肌的力量将身体推回顶点！",
+        duration: 40, rest: 30, sets: 4
+      },
+      {
+        id: "inverted_row",
+        day: "pull",
+        name: "3. 桌底/低杠澳式引体",
+        shortName: "3. 澳式引体",
+        targetMuscle: "背阔肌 · 大圆肌 · 菱形肌 · 肱二头肌",
+        cue: "双手握稳桌沿或低杠，身体挺直悬垂<br>先沉肩收紧肩胛骨，胸口拉向横杠",
+        voiceIntro: "开始澳式引体。身体挺直如钢板，先沉肩收紧肩胛骨，手肘向身体后方拉起。",
+        voiceMid: "胸口尽量贴近横杠，顶峰停顿半秒，感受整个后背夹紧！",
+        duration: 45, rest: 30, sets: 4
+      },
+      {
+        id: "towel_face_pull",
+        day: "pull",
+        name: "4. 俯身毛巾面拉",
+        shortName: "4. 毛巾面拉",
+        targetMuscle: "三角肌后束 · 中下斜方肌 · 冈下肌 (改善圆肩)",
+        cue: "屈髋俯身 45° 挺直腰背，双手拉紧毛巾两端<br>向额头两侧外旋提拉，大臂与肩同高",
+        voiceIntro: "开始俯身毛巾面拉。双手用力向两侧扯紧毛巾，朝额头方向提拉并外旋小臂。",
+        voiceMid: "专注肩部后束与上背收紧，彻底打开胸腔，改善圆肩体态！",
+        duration: 40, rest: 25, sets: 3
+      },
+      {
+        id: "squat",
+        day: "legs",
+        name: "5. 全幅度自重深蹲",
+        shortName: "5. 自重深蹲",
+        targetMuscle: "股四头肌 (股直肌/股外侧肌) · 臀大肌",
+        cue: "髋膝同步屈曲向后坐，脊柱保持中立<br>下蹲至大腿平行地面，膝盖顺脚尖方向",
+        voiceIntro: "开始全幅度自重深蹲。髋部先向后坐，下蹲到大腿平行地面，膝盖朝脚尖方向打开。",
+        voiceMid: "全脚掌踩实地面，臀腿协同发力蹬起，拒绝膝盖内扣！",
+        duration: 50, rest: 35, sets: 4
+      },
+      {
+        id: "bulgarian_squat",
+        day: "legs",
+        name: "6. 保加利亚分腿蹲",
+        shortName: "6. 分腿蹲",
+        targetMuscle: "前侧臀大肌 · 股四头肌水滴肌 · 腘绳肌",
+        cue: "后脚背搭在椅面，重心 85% 压在前脚跟<br>躯干微前倾 15°，后膝垂直下沉触地边缘",
+        voiceIntro: "开始保加利亚分腿蹲。后脚搭上椅子，重心全部压在前脚后跟，躯干微前倾下蹲。",
+        voiceMid: "稳住前侧膝盖不要左右摇晃，前脚跟发力推起，榨干臀腿力量！",
+        duration: 40, rest: 30, sets: 3
+      }
+    ];
+
+    const AudioEngine = {
+      ctx: null,
+      init() {
+        if (!this.ctx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) this.ctx = new AC();
+        }
+      },
+      beep(freq = 600, duration = 0.09, type = "sine") {
+        try {
+          this.init();
+          if (!this.ctx) return;
+          if (this.ctx.state === 'suspended') this.ctx.resume();
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch (e) {}
+      }
+    };
+
+    const VoiceCoach = {
+      muted: false,
+      speak(text) {
+        if (this.muted) return;
+        if (window.AndroidTTS && typeof window.AndroidTTS.speak === 'function') {
+          window.AndroidTTS.speak(text);
+          return;
+        }
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const utter = new SpeechSynthesisUtterance(text);
+          utter.lang = 'zh-CN';
+          utter.rate = 1.05;
+          window.speechSynthesis.speak(utter);
+        }
+      }
+    };
+
+    /* -------------------------------------------------------------
+       3D 医学解剖多肌腹渲染引擎 (对标参考图银灰素描 + 珊瑚红肌纤维)
+    ------------------------------------------------------------- */
+    class EcorcheAnatomicalRenderer {
+      constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.t = 0;
+        this.slowMo = false;
+        this.showBioRules = true;
+        this.currentExercise = 'push_up';
+        this.lastCyclePeak = false;
+        this.onRepCallback = null;
+        this.animate = this.animate.bind(this);
+        requestAnimationFrame(this.animate);
+      }
+
+      // 绘制解剖梭形肌腹 + 内部顺向羽状肌纤维 + 白色腱膜
+      drawMuscleBelly(ctx, x1, y1, x2, y2, rMid, isTarget, activation, bulgeBias = 0, isFarSide = false) {
+        const dx = x2 - x1, dy = y2 - y1;
+        const len = Math.hypot(dx, dy);
+        if (len < 2) return;
+        const angle = Math.atan2(dy, dx);
+        const swell = isTarget ? rMid * (1 + activation * 0.22) : rMid;
+
+        ctx.save();
+        ctx.translate(x1, y1);
+        ctx.rotate(angle);
+
+        if (isFarSide) ctx.filter = 'brightness(0.72)';
+
+        // 肌腹贝塞尔轮廓
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.bezierCurveTo(len * 0.25, -swell * (1 + bulgeBias), len * 0.75, -swell * 0.85, len, 0);
+        ctx.bezierCurveTo(len * 0.75, swell * (1 - bulgeBias * 0.5), len * 0.25, swell * 0.95, 0, 0);
+        ctx.closePath();
+
+        // 3D 圆柱光影渐变
+        const grad = ctx.createLinearGradient(0, -swell, 0, swell);
+        if (isTarget) {
+          const alpha = 0.78 + activation * 0.22;
+          grad.addColorStop(0, `rgba(159, 18, 57, ${alpha})`);
+          grad.addColorStop(0.35, `rgba(225, 29, 72, ${alpha})`);
+          grad.addColorStop(0.65, `rgba(251, 113, 133, ${alpha})`);
+          grad.addColorStop(1, `rgba(136, 19, 55, ${alpha})`);
+        } else {
+          grad.addColorStop(0, '#64748b');
+          grad.addColorStop(0.35, '#e2e8f0');
+          grad.addColorStop(0.7, '#94a3b8');
+          grad.addColorStop(1, '#475569');
+        }
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // 裁剪绘制内部羽状肌纤维拉丝 (Striations)
+        ctx.save();
+        ctx.clip();
+        ctx.lineWidth = 1.1;
+        ctx.strokeStyle = isTarget ? 'rgba(255, 228, 230, 0.42)' : 'rgba(51, 65, 85, 0.32)';
+        const fibers = 6;
+        for (let i = -fibers; i <= fibers; i++) {
+          if (i === 0) continue;
+          const offset = (i / fibers) * swell * 0.85;
+          ctx.beginPath();
+          ctx.moveTo(len * 0.06, 0);
+          ctx.quadraticCurveTo(len * 0.5, offset * 1.25, len * 0.94, 0);
+          ctx.stroke();
+        }
+        // 两端白色肌腱高光 (Tendon Aponeurosis)
+        const tendonGrad1 = ctx.createLinearGradient(0, 0, len * 0.18, 0);
+        tendonGrad1.addColorStop(0, 'rgba(248, 250, 252, 0.85)');
+        tendonGrad1.addColorStop(1, 'rgba(248, 250, 252, 0)');
+        ctx.fillStyle = tendonGrad1;
+        ctx.fillRect(0, -swell, len * 0.18, swell * 2);
+        ctx.restore();
+
+        // 外沿解剖描边
+        ctx.strokeStyle = isTarget ? '#881337' : '#475569';
+        ctx.lineWidth = 1.3;
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      // 绘制写实男性寸头解剖头部
+      drawSculptedHead(ctx, x, y, tiltAngle) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(tiltAngle);
+
+        // 颅骨与下颌轮廓
+        ctx.beginPath();
+        ctx.arc(0, -4, 20, Math.PI * 0.75, Math.PI * 2.15);
+        ctx.lineTo(19, 10);
+        ctx.lineTo(8, 20);
+        ctx.lineTo(-8, 16);
+        ctx.closePath();
+
+        const headGrad = ctx.createRadialGradient(4, -6, 3, 0, 0, 24);
+        headGrad.addColorStop(0, '#f1f5f9');
+        headGrad.addColorStop(0.7, '#94a3b8');
+        headGrad.addColorStop(1, '#475569');
+        ctx.fillStyle = headGrad;
+        ctx.fill();
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+
+        // 寸头深灰发际线
+        ctx.beginPath();
+        ctx.arc(-1, -5, 19.5, Math.PI * 0.85, Math.PI * 1.92);
+        ctx.quadraticCurveTo(6, -6, -6, -2);
+        ctx.closePath();
+        ctx.fillStyle = '#1e293b';
+        ctx.fill();
+
+        // 耳廓与眉弓阴影
+        ctx.fillStyle = '#475569';
+        ctx.beginPath();
+        ctx.ellipse(-2, 3, 3, 5, 0.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      // 绘制黑色紧身压缩短裤 (完全还原参考图)
+      drawCompressionShorts(ctx, hipX, hipY, thighX, thighY, waistX, waistY) {
+        ctx.save();
+        const angle = Math.atan2(thighY - hipY, thighX - hipX);
+        ctx.translate(hipX, hipY);
+        ctx.rotate(angle);
+
+        ctx.beginPath();
+        ctx.moveTo(-16, -22);
+        ctx.lineTo(42, -17);
+        ctx.lineTo(40, 17);
+        ctx.quadraticCurveTo(8, 24, -18, 18);
+        ctx.closePath();
+
+        const shortsGrad = ctx.createLinearGradient(0, -22, 0, 22);
+        shortsGrad.addColorStop(0, '#0f172a');
+        shortsGrad.addColorStop(0.45, '#334155');
+        shortsGrad.addColorStop(1, '#020617');
+        ctx.fillStyle = shortsGrad;
+        ctx.fill();
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      animate() {
+        const speed = this.slowMo ? 0.012 : 0.038;
+        this.t += speed;
+        const cycle = (Math.sin(this.t) + 1) / 2; // 0: 顶端, 1: 底端/最大张力
+        const activation = 0.35 + 0.65 * Math.sin(this.t * 0.5) ** 2;
+
+        // 计次检测
+        if (cycle > 0.92 && !this.lastCyclePeak) {
+          this.lastCyclePeak = true;
+          if (this.onRepCallback) this.onRepCallback();
+        } else if (cycle < 0.25) {
+          this.lastCyclePeak = false;
+        }
+
+        // 更新 UI 节奏条
+        const tempoFill = document.getElementById('tempoFill');
+        const tempoPhaseText = document.getElementById('tempoPhaseText');
+        const tensionReadout = document.getElementById('tensionReadout');
+        if (tempoFill) {
+          tempoFill.style.width = `${Math.round(cycle * 100)}%`;
+          const isEccentric = Math.cos(this.t) > 0;
+          tempoPhaseText.innerText = cycle > 0.88 ? "底部顶峰张力停顿 (Pause)" : (isEccentric ? "离心控制下放 (Eccentric)" : "向心爆发推起 (Concentric)");
+          tensionReadout.innerText = `实时肌纤维张力: ${Math.round(45 + cycle * 52)}%`;
+        }
+
+        const ctx = this.ctx;
+        const w = this.canvas.width, h = this.canvas.height;
+        ctx.clearRect(0, 0, w, h);
+
+        switch (this.currentExercise) {
+          case 'push_up': this.renderPushUp3D(ctx, w, h, cycle); break;
+          case 'pike_push_up': this.renderPike3D(ctx, w, h, cycle); break;
+          case 'inverted_row': this.renderInvertedRow3D(ctx, w, h, cycle); break;
+          case 'towel_face_pull': this.renderFacePull3D(ctx, w, h, cycle); break;
+          case 'squat': this.renderSquat3D(ctx, w, h, cycle); break;
+          case 'bulgarian_squat': this.renderBulgarian3D(ctx, w, h, cycle); break;
+        }
+
+        requestAnimationFrame(this.animate);
+      }
+
+      // 1. 标准俯卧撑 (完全复刻用户参考图 3/4 立体视角)
+      renderPushUp3D(ctx, w, h, cycle) {
+        const drop = cycle * 68;
+        const footX = 165, footY = 365;
+        const ankleX = 180, ankleY = 335 + drop * 0.15;
+        const kneeX = 295, kneeY = 300 + drop * 0.42;
+        const hipX = 415, hipY = 258 + drop * 0.72;
+        const shoulderX = 595, shoulderY = 195 + drop;
+        const headX = 665, headY = 182 + drop * 1.02;
+
+        const handNearX = 560, handNearY = 435;
+        const elbowNearX = 532 - cycle * 28, elbowNearY = 310 + drop * 0.55;
+
+        const handFarX = 648, handFarY = 395;
+        const elbowFarX = 625 - cycle * 20, elbowFarY = 278 + drop * 0.55;
+
+        // 展台地面柔和投影
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.14)';
+        ctx.beginPath();
+        ctx.ellipse(420, 415, 260, 34, -0.08, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 远端后侧手臂 (AO 压暗)
+        this.drawMuscleBelly(ctx, shoulderX + 25, shoulderY - 8, elbowFarX, elbowFarY, 15, true, cycle, 0.2, true);
+        this.drawMuscleBelly(ctx, elbowFarX, elbowFarY, handFarX, handFarY, 12, false, cycle, 0.1, true);
+
+        // 双腿肌群：腓肠肌 + 股四头肌分束
+        this.drawMuscleBelly(ctx, ankleX, ankleY - 12, kneeX, kneeY - 10, 14, false, cycle, 0.25, true);
+        this.drawMuscleBelly(ctx, kneeX, kneeY - 10, hipX, hipY - 10, 20, false, cycle, 0.2, true);
+
+        this.drawMuscleBelly(ctx, ankleX, ankleY, kneeX, kneeY, 16, false, cycle, 0.3, false);
+        this.drawMuscleBelly(ctx, kneeX, kneeY, hipX, hipY, 23, false, cycle, 0.25, false);
+
+        // 脚掌撑地
+        ctx.fillStyle = '#94a3b8';
+        ctx.beginPath();
+        ctx.moveTo(ankleX, ankleY); ctx.lineTo(footX - 10, footY + 12); ctx.lineTo(footX + 18, footY + 14);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+
+        // 躯干：背阔肌 + 前锯肌 + 腹外斜肌
+        this.drawMuscleBelly(ctx, hipX, hipY, shoulderX, shoulderY, 32, false, cycle, -0.15, false);
+
+        // 黑色紧身短裤
+        this.drawCompressionShorts(ctx, hipX, hipY, kneeX, kneeY, shoulderX, shoulderY);
+
+        // 珊瑚红高亮胸大肌扇面 (Pectoralis Major，完全对应参考图胸肌位置)
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(shoulderX - 8, shoulderY + 6);
+        ctx.quadraticCurveTo(shoulderX + 28, shoulderY + 42, shoulderX - 35, shoulderY + 46);
+        ctx.quadraticCurveTo(shoulderX - 65, shoulderY + 32, shoulderX - 42, shoulderY + 4);
+        ctx.closePath();
+        const pecGrad = ctx.createLinearGradient(shoulderX - 50, shoulderY, shoulderX + 20, shoulderY + 45);
+        pecGrad.addColorStop(0, '#9f1239');
+        pecGrad.addColorStop(0.5, '#e11d48');
+        pecGrad.addColorStop(1, '#fb7185');
+        ctx.fillStyle = pecGrad;
+        ctx.fill();
+        ctx.strokeStyle = '#881337';
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+        ctx.restore();
+
+        // 头部与颈部斜方肌
+        this.drawMuscleBelly(ctx, shoulderX, shoulderY - 6, headX - 12, headY - 4, 14, false, cycle, 0.1, false);
+        this.drawSculptedHead(ctx, headX, headY, 0.25);
+
+        // 近端主发力手臂：珊瑚红肱三头肌 + 三角肌前中束 + 银灰前臂肱桡肌
+        this.drawMuscleBelly(ctx, shoulderX - 6, shoulderY + 8, elbowNearX, elbowNearY, 18, true, cycle, 0.25, false);
+        // 三角肌包覆肩峰
+        this.drawMuscleBelly(ctx, shoulderX - 14, shoulderY - 8, shoulderX + 6, shoulderY + 30, 17, true, cycle, 0.2, false);
+        // 前臂与手掌五指平铺
+        this.drawMuscleBelly(ctx, elbowNearX, elbowNearY, handNearX, handNearY, 13, false, cycle, 0.2, false);
+        ctx.fillStyle = '#cbd5e1';
+        ctx.beginPath();
+        ctx.ellipse(handNearX + 16, handNearY + 4, 20, 6, 0.08, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+
+        // 生物力学标尺
+        if (this.showBioRules) {
+          ctx.save();
+          ctx.setLineDash([6, 6]);
+          ctx.strokeStyle = '#059669';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(ankleX, ankleY - 22);
+          ctx.lineTo(shoulderX, shoulderY - 22);
+          ctx.stroke();
+          ctx.fillStyle = '#065f46';
+          ctx.font = 'bold 13px sans-serif';
+          ctx.fillText('180° 刚性躯干对齐线 (拒绝塌腰)', 330, hipY - 35);
+          ctx.restore();
+        }
+      }
+
+      // 2. 折刀俯卧撑 (倒 V 轰击肩部三角肌)
+      renderPike3D(ctx, w, h, cycle) {
+        const dive = cycle * 62;
+        const footX = 240, footY = 425;
+        const hipX = 410, hipY = 175 + dive * 0.2;
+        const shoulderX = 545 + dive * 0.35, shoulderY = 290 + dive * 0.85;
+        const headX = 590 + dive * 0.45, headY = 340 + dive * 0.95;
+        const handX = 595, handY = 435;
+        const elbowX = 555 - cycle * 18, elbowY = 365 + dive * 0.4;
+
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.14)';
+        ctx.beginPath(); ctx.ellipse(430, 440, 210, 25, 0, 0, Math.PI * 2); ctx.fill();
+
+        this.drawMuscleBelly(ctx, footX, footY, (footX+hipX)/2, (footY+hipY)/2, 16, false, cycle, 0.2, false);
+        this.drawMuscleBelly(ctx, (footX+hipX)/2, (footY+hipY)/2, hipX, hipY, 24, false, cycle, 0.2, false);
+        this.drawMuscleBelly(ctx, hipX, hipY, shoulderX, shoulderY, 30, false, cycle, -0.1, false);
+        this.drawCompressionShorts(ctx, hipX, hipY, footX, footY, shoulderX, shoulderY);
+
+        this.drawSculptedHead(ctx, headX, headY, 0.85);
+        this.drawMuscleBelly(ctx, shoulderX, shoulderY, elbowX, elbowY, 18, true, cycle, 0.25, false);
+        // 高亮三角肌圆肩
+        this.drawMuscleBelly(ctx, shoulderX - 15, shoulderY - 12, shoulderX + 12, shoulderY + 22, 20, true, 1, 0.3, false);
+        this.drawMuscleBelly(ctx, elbowX, elbowY, handX, handY, 13, false, cycle, 0.15, false);
+
+        if (this.showBioRules) {
+          ctx.save();
+          ctx.strokeStyle = '#e11d48'; ctx.setLineDash([5, 5]); ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(headX, headY); ctx.lineTo(handX + 35, handY); ctx.stroke();
+          ctx.fillStyle = '#9f1239'; ctx.font = 'bold 13px sans-serif';
+          ctx.fillText('90° 倒 V 折刀 · 前额斜向前俯冲', 350, 145);
+          ctx.restore();
+        }
+      }
+
+      // 3. 桌底/低杠澳式引体 (背阔肌与大圆肌高亮)
+      renderInvertedRow3D(ctx, w, h, cycle) {
+        const pull = (1 - cycle) * 65;
+        const heelX = 220, heelY = 425;
+        const hipX = 410, hipY = 345 - pull * 0.55;
+        const shoulderX = 575, shoulderY = 275 - pull;
+        const headX = 630, headY = 248 - pull;
+        const barX = 565, barY = 155;
+        const elbowX = 555 + (1 - cycle) * 35, elbowY = 260 - pull * 0.4;
+
+        // 低杠支架
+        ctx.strokeStyle = '#334155'; ctx.lineWidth = 8;
+        ctx.beginPath(); ctx.moveTo(barX, barY); ctx.lineTo(barX, 445); ctx.stroke();
+        ctx.fillStyle = '#0f172a'; ctx.beginPath(); ctx.arc(barX, barY, 10, 0, Math.PI * 2); ctx.fill();
+
+        this.drawMuscleBelly(ctx, heelX, heelY, hipX, hipY, 20, false, cycle, 0.15, false);
+        // 珊瑚红高亮背阔肌
+        this.drawMuscleBelly(ctx, hipX, hipY, shoulderX, shoulderY, 31, true, 1 - cycle, 0.25, false);
+        this.drawCompressionShorts(ctx, hipX, hipY, heelX, heelY, shoulderX, shoulderY);
+        this.drawSculptedHead(ctx, headX, headY, -0.45);
+
+        // 肱二头肌与后束高亮
+        this.drawMuscleBelly(ctx, shoulderX, shoulderY, elbowX, elbowY, 17, true, 1 - cycle, -0.25, false);
+        this.drawMuscleBelly(ctx, elbowX, elbowY, barX, barY, 12, false, 1 - cycle, 0.1, false);
+      }
+
+      // 4. 俯身毛巾面拉 (三角肌后束与中下斜方肌)
+      renderFacePull3D(ctx, w, h, cycle) {
+        const pull = (1 - cycle) * 48;
+        const footX = 410, footY = 435;
+        const kneeX = 435, kneeY = 335;
+        const hipX = 365, hipY = 245;
+        const shoulderX = 485, shoulderY = 165;
+        const headX = 535, headY = 132;
+        const handX = 575 - pull, handY = 195 - pull * 0.65;
+        const elbowX = 515 - pull * 0.8, elbowY = 175 - pull * 0.4;
+
+        this.drawMuscleBelly(ctx, footX, footY, kneeX, kneeY, 16, false, cycle, 0.2, false);
+        this.drawMuscleBelly(ctx, kneeX, kneeY, hipX, hipY, 24, false, cycle, 0.2, false);
+        // 背部与斜方肌高亮
+        this.drawMuscleBelly(ctx, hipX, hipY, shoulderX, shoulderY, 30, true, 1 - cycle, -0.2, false);
+        this.drawCompressionShorts(ctx, hipX, hipY, kneeX, kneeY, shoulderX, shoulderY);
+        this.drawSculptedHead(ctx, headX, headY, 0.35);
+
+        // 三角肌后束高光
+        this.drawMuscleBelly(ctx, shoulderX, shoulderY, elbowX, elbowY, 18, true, 1 - cycle, 0.3, false);
+        this.drawMuscleBelly(ctx, elbowX, elbowY, handX, handY, 13, false, cycle, 0.1, false);
+
+        // 手中拉紧的毛巾
+        ctx.strokeStyle = '#0284c7'; ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.moveTo(handX, handY - 18); ctx.lineTo(handX + 12, handY + 22); ctx.stroke();
+      }
+
+      // 5. 全幅度自重深蹲 (股四头肌与臀大肌高亮)
+      renderSquat3D(ctx, w, h, cycle) {
+        const depth = cycle * 95;
+        const ankleX = 450, ankleY = 425;
+        const kneeX = 465 + cycle * 48, kneeY = 315 + depth * 0.22;
+        const hipX = 435 - cycle * 62, hipY = 205 + depth;
+        const shoulderX = 450 - cycle * 18, shoulderY = 95 + depth * 0.85;
+        const headX = shoulderX + 12, headY = shoulderY - 28;
+
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.15)';
+        ctx.beginPath(); ctx.ellipse(450, 440, 110 + cycle * 30, 22, 0, 0, Math.PI * 2); ctx.fill();
+
+        // 远端腿
+        this.drawMuscleBelly(ctx, ankleX + 22, ankleY - 8, kneeX + 22, kneeY - 8, 15, false, cycle, 0.2, true);
+        this.drawMuscleBelly(ctx, kneeX + 22, kneeY - 8, hipX + 18, hipY - 8, 24, true, cycle, 0.25, true);
+
+        // 小腿腓肠肌
+        this.drawMuscleBelly(ctx, ankleX, ankleY, kneeX, kneeY, 17, false, cycle, 0.3, false);
+        // 珊瑚红高亮股四头肌 (股直肌 + 水滴状股内侧肌)
+        this.drawMuscleBelly(ctx, kneeX, kneeY, hipX, hipY, 27, true, cycle, 0.32, false);
+        // 臀大肌充血
+        this.drawMuscleBelly(ctx, hipX - 12, hipY + 8, hipX + 18, hipY - 15, 22, true, cycle, 0.3, false);
+
+        this.drawMuscleBelly(ctx, hipX, hipY, shoulderX, shoulderY, 29, false, cycle, 0.1, false);
+        this.drawCompressionShorts(ctx, hipX, hipY, kneeX, kneeY, shoulderX, shoulderY);
+        this.drawSculptedHead(ctx, headX, headY, 0.1);
+
+        // 前平举保持平衡手臂
+        this.drawMuscleBelly(ctx, shoulderX, shoulderY + 10, shoulderX + 85, shoulderY + 18, 14, false, cycle, 0.1, false);
+
+        if (this.showBioRules) {
+          ctx.save();
+          ctx.setLineDash([6, 4]); ctx.strokeStyle = '#e11d48'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(310, kneeY); ctx.lineTo(590, kneeY); ctx.stroke();
+          ctx.fillStyle = '#9f1239'; ctx.font = 'bold 13px sans-serif';
+          ctx.fillText('深蹲大腿平行达标线 (髋低于膝)', 260, kneeY - 10);
+          ctx.restore();
+        }
+      }
+
+      // 6. 保加利亚分腿蹲
+      renderBulgarian3D(ctx, w, h, cycle) {
+        const depth = cycle * 78;
+        const frontAnkleX = 520, frontAnkleY = 425;
+        const frontKneeX = 532 + cycle * 22, frontKneeY = 320 + depth * 0.25;
+        const hipX = 445, hipY = 215 + depth;
+        const backKneeX = 365, backKneeY = 315 + depth * 0.85;
+        const benchX = 275, benchY = 335;
+        const shoulderX = 468, shoulderY = 100 + depth * 0.9;
+
+        // 后方训练凳
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(benchX - 35, benchY, 70, 105);
+
+        // 后置辅助腿
+        this.drawMuscleBelly(ctx, hipX, hipY, backKneeX, backKneeY, 21, false, cycle, 0.2, true);
+        this.drawMuscleBelly(ctx, backKneeX, backKneeY, benchX, benchY, 14, false, cycle, 0.15, true);
+
+        // 前置主发力腿 (股四头肌 + 臀大肌高光)
+        this.drawMuscleBelly(ctx, frontAnkleX, frontAnkleY, frontKneeX, frontKneeY, 16, false, cycle, 0.25, false);
+        this.drawMuscleBelly(ctx, frontKneeX, frontKneeY, hipX, hipY, 26, true, cycle, 0.32, false);
+        this.drawMuscleBelly(ctx, hipX, hipY, shoulderX, shoulderY, 28, false, cycle, 0.1, false);
+        this.drawCompressionShorts(ctx, hipX, hipY, frontKneeX, frontKneeY, shoulderX, shoulderY);
+        this.drawSculptedHead(ctx, shoulderX + 10, shoulderY - 26, 0.15);
+      }
+    }
+
+    /* -------------------------------------------------------------
+       主控状态机与 TV 遥控器支持
+    ------------------------------------------------------------- */
+    const WorkoutEngine = {
+      exerciseIndex: 0,
+      currentSet: 1,
+      repCount: 0,
+      isResting: false,
+      isPaused: false,
+      timeLeft: 45,
+      timerId: null,
+      renderer: null,
+
+      init() {
+        this.renderer = new EcorcheAnatomicalRenderer('anatomicalStage');
+        this.renderer.onRepCallback = () => {
+          if (!this.isResting && !this.isPaused) {
+            this.repCount++;
+            document.getElementById('repDisplay').innerText = this.repCount;
+          }
+        };
+        this.renderPills();
+        this.bindEvents();
+        this.loadExercise(0);
+      },
+
+      renderPills() {
+        const box = document.getElementById('exercisePills');
+        box.innerHTML = WORKOUT_PROGRAM.map((ex, i) =>
+          `<div class="ex-pill tv-focusable ${i === this.exerciseIndex ? 'active' : ''}" onclick="WorkoutEngine.loadExercise(${i})">${ex.shortName}</div>`
+        ).join('');
+      },
+
+      filterDay(day) {
+        document.querySelectorAll('.day-tab').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        const idx = day === 'all' ? 0 : WORKOUT_PROGRAM.findIndex(e => e.day === day);
+        if (idx >= 0) this.loadExercise(idx);
+      },
+
+      toggleSlowMo() {
+        this.renderer.slowMo = !this.renderer.slowMo;
+        document.getElementById('btnSlowMo').innerHTML = `<span>🔬 解剖慢放 [S]: ${this.renderer.slowMo ? '0.3x' : '1.0x'}</span>`;
+      },
+
+      toggleBioRule() {
+        this.renderer.showBioRules = !this.renderer.showBioRules;
+        document.getElementById('btnBioRule').innerHTML = `<span>📐 力学标尺 [B]: ${this.renderer.showBioRules ? '开' : '关'}</span>`;
+      },
+
+      loadExercise(index) {
+        this.exerciseIndex = index;
+        this.currentSet = 1;
+        this.repCount = 0;
+        const ex = WORKOUT_PROGRAM[index];
+        this.renderer.currentExercise = ex.id;
+        document.getElementById('exerciseTitle').innerText = ex.name;
+        document.getElementById('targetMuscleLabel').innerText = ex.targetMuscle;
+        document.getElementById('biomechanicsCue').innerHTML = ex.cue;
+        document.getElementById('repDisplay').innerText = '0';
+        this.renderPills();
+        this.startPhase(false);
+      },
+
+      startPhase(isRest) {
+        clearInterval(this.timerId);
+        this.isResting = isRest;
+        const ex = WORKOUT_PROGRAM[this.exerciseIndex];
+        const badge = document.getElementById('phaseBadge');
+
+        if (isRest) {
+          this.timeLeft = ex.rest;
+          badge.className = 'phase-badge phase-rest';
+          badge.innerText = '组间休息恢复 (REST)';
+          AudioEngine.beep(440, 0.2);
+          VoiceCoach.speak(`本组完成。休息 ${this.timeLeft} 秒，深呼吸放松肌肉。`);
+        } else {
+          this.timeLeft = ex.duration;
+          this.repCount = 0;
+          document.getElementById('repDisplay').innerText = '0';
+          badge.className = 'phase-badge phase-work';
+          badge.innerText = '训练进行中 (WORK)';
+          document.getElementById('setInfo').innerText = `第 ${this.currentSet} / ${ex.sets} 组 · 渐进式超负荷`;
+          AudioEngine.beep(880, 0.25, 'triangle');
+          VoiceCoach.speak(ex.voiceIntro);
+        }
+
+        document.getElementById('timerDisplay').innerText = this.timeLeft;
+        this.timerId = setInterval(() => this.tick(), 1000);
+      },
+
+      tick() {
+        if (this.isPaused) return;
+        this.timeLeft--;
+        document.getElementById('timerDisplay').innerText = this.timeLeft;
+        const ex = WORKOUT_PROGRAM[this.exerciseIndex];
+
+        if (!this.isResting && this.timeLeft === Math.floor(ex.duration / 2)) {
+          VoiceCoach.speak(ex.voiceMid);
+        }
+        if (this.timeLeft > 0 && this.timeLeft <= 3) {
+          AudioEngine.beep(720, 0.08);
+        }
+        if (this.timeLeft <= 0) {
+          this.nextPhase();
+        }
+      },
+
+      nextPhase() {
+        clearInterval(this.timerId);
+        const ex = WORKOUT_PROGRAM[this.exerciseIndex];
+        if (!this.isResting) {
+          if (this.currentSet < ex.sets) {
+            this.currentSet++;
+            this.startPhase(true);
+          } else {
+            this.loadExercise((this.exerciseIndex + 1) % WORKOUT_PROGRAM.length);
+          }
+        } else {
+          this.startPhase(false);
+        }
+      },
+
+      bindEvents() {
+        document.getElementById('btnPause').onclick = () => {
+          this.isPaused = !this.isPaused;
+          VoiceCoach.speak(this.isPaused ? "暂停" : "继续训练");
+        };
+        document.getElementById('btnSkip').onclick = () => this.nextPhase();
+        document.getElementById('btnMute').onclick = (e) => {
+          VoiceCoach.muted = !VoiceCoach.muted;
+          e.target.innerText = VoiceCoach.muted ? "🔇 语音静音 [M]" : "🔊 语音开启 [M]";
+        };
+
+        window.addEventListener('keydown', (e) => {
+          if (e.keyCode === 32 || e.keyCode === 13) document.getElementById('btnPause').click();
+          if (e.keyCode === 39) this.nextPhase();
+          if (e.keyCode === 77) document.getElementById('btnMute').click();
+          if (e.keyCode === 83) this.toggleSlowMo();
+          if (e.keyCode === 66) this.toggleBioRule();
+          if (e.keyCode >= 49 && e.keyCode <= 54) this.loadExercise(e.keyCode - 49);
+        });
+      }
+    };
+
+    window.addEventListener('DOMContentLoaded', () => WorkoutEngine.init());
+  </script>
+</body>
+</html>
